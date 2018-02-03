@@ -10,9 +10,13 @@ import "./EIP20Interface.sol";
 
 contract EIP20 is EIP20Interface {
 
+
     uint256 constant private MAX_UINT256 = 2**256 - 1;
-    mapping (address => uint256) public balances;
     mapping (address => mapping (address => uint256)) public allowed;
+    mapping (address => uint256) public balances;
+
+    address public owner;
+
     /*
     NOTE:
     The following variables are OPTIONAL vanities. One does not have to include them.
@@ -29,11 +33,22 @@ contract EIP20 is EIP20Interface {
         uint8 _decimalUnits,
         string _tokenSymbol
     ) public {
-        balances[msg.sender] = _initialAmount;               // Give the creator all initial tokens
-        totalSupply = _initialAmount;                        // Update total supply
+        totalSupply = _initialAmount;
         name = _tokenName;                                   // Set the name for display purposes
         decimals = _decimalUnits;                            // Amount of decimals for display purposes
         symbol = _tokenSymbol;                               // Set the symbol for display purposes
+
+        owner = msg.sender;
+    }
+
+    modifier onlyContractOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+
+    function getTotalSupply() public view returns (uint256 _totalSupply) {
+        _totalSupply = totalSupply;
+        return _totalSupply;
     }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
@@ -68,5 +83,5 @@ contract EIP20 is EIP20Interface {
 
     function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
         return allowed[_owner][_spender];
-    }   
+    }
 }

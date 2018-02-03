@@ -1,4 +1,4 @@
-const EIP20 = artifacts.require('./EIP20.sol');
+const EIP20 = artifacts.require('./KDOTicket.sol');
 
 module.exports = (deployer) => {
   deployer.deploy(EIP20);
