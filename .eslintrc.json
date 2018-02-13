@@ -17,5 +17,18 @@
     "artifacts": true,
     "contract": true,
     "web3": true
+  },
+  "rules": {
+    "max-len": ["error", {
+      "ignoreComments": true,
+      "ignoreTrailingComments": true,
+      "code": 120
+    }],
+    "prefer-destructuring": ["error", {
+      "AssignmentExpression": {
+        "array": false,
+        "object": false
+      }
+    }]
   }
 }

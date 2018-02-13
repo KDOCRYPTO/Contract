@@ -1,22 +1,20 @@
 const { expectThrow } = require('./utils');
 
 const KDOTicket = artifacts.require('KDOTicket');
-let HST, tickets, contractOwner;
+
+let HST;
+let contractOwner;
+
+const tickets = {
+  bronze: 99,
+  silver: 149,
+  gold: 249,
+};
 
 contract('KDOTicket', (accounts) => {
   beforeEach(async () => {
     HST = await KDOTicket.new({ from: accounts[0] });
-    tickets = {
-      'bronze': 99,
-      'silver': 149,
-      'gold': 249
-    };
     contractOwner = accounts[0];
-  });
-
-  it('creation: should create an initial balance of 10000 for the creator', async () => {
-    const balance = await HST.balanceOf.call(accounts[0]);
-    assert.strictEqual(balance.toNumber(), 0);
   });
 
   it('creation: test correct setting of vanity information', async () => {
@@ -30,19 +28,21 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(symbol, 'KDO');
   });
 
+  it('consumer: should not be able to add or remove a consumer', () => {
+    expectThrow(HST.addAllowedConsumers.call(accounts, { from: accounts[2] }));
+    expectThrow(HST.removeAllowedConsumers.call(accounts, { from: accounts[2] }));
+  });
+
+  it('ticket: should not be able to allocate new ticket (not contract owner)', () => {
+    expectThrow(HST.allocateNewTicket.call(accounts[1], 'gold', { from: accounts[2] }));
+  });
+
   it('ticket: should transfer ticket value to accounts[1]', async () => {
-    let tKey1 = 'gold';
+    const tKey1 = 'gold';
     await HST.allocateNewTicket(accounts[1], tKey1, { from: contractOwner });
 
-    const balance = await HST.balanceOf.call(accounts[1]);
+    const balance = await HST.balanceOfTicket.call(accounts[1]);
     assert.strictEqual(balance.toNumber(), tickets[tKey1]);
-
-    let tKey2 = 'silver';
-    await HST.allocateNewTicket(accounts[1], tKey2, { from: contractOwner });
-
-    const balanceCumulated = await HST.balanceOf.call(accounts[1]);
-    let totValue = tickets[tKey1] + tickets[tKey2];
-    assert.strictEqual(balanceCumulated.toNumber(), totValue);
   });
 
   it('ticket: should be elligible for inferior ticket but not superior ones', async () => {
@@ -52,167 +52,116 @@ contract('KDOTicket', (accounts) => {
     const isSilver = await HST.isTicketValid.call(accounts[1], 'silver');
     const isGold = await HST.isTicketValid.call(accounts[1], 'gold');
 
-    assert.isTrue(isBronze, isSilver)
+    assert.isTrue(isBronze, isSilver);
     assert.isFalse(isGold);
   });
 
-  it('ticket: should accumulate ticket values to total supply', async () => {
-    let tKey1 = 'silver';
-    let tKey2 = 'gold';
-    let tVal1 = tickets[tKey1];
-    let tVal2 = tickets[tKey2];
-
-    await HST.allocateNewTicket(accounts[1], tKey1, { from: contractOwner });
-    const totalSupply1 = await HST.getTotalSupply.call();
-    assert.strictEqual(totalSupply1.toNumber(), tVal1);
-
-    await HST.allocateNewTicket(accounts[1], tKey2, { from: contractOwner });
-    const totalSupply2 = await HST.getTotalSupply.call();
-    assert.strictEqual(totalSupply2.toNumber(), tVal1 + tVal2);
+  it('ticket: should fail when trying to allocate non-existing ticket type', () => {
+    expectThrow(HST.allocateNewTicket.call(accounts[1], 'foobar', { from: contractOwner }));
   });
 
-  it('ticket: should be consumed when transfer happens', async () => {
-    await HST.allocateNewTicket(accounts[1], 'bronze', { from: contractOwner });
+  it('ticket: should not be consumable by a non consumer', async () => {
+    const tKey = 'silver';
+    const ticket = accounts[1];
+    await HST.allocateNewTicket(ticket, tKey, { from: contractOwner });
 
-    const isBronze = await HST.isTicketValid.call(accounts[1], 'bronze');
+    const notAConsumer = accounts[2];
 
-    assert.isTrue(isBronze);
+    expectThrow(HST.consumeTicket.call(ticket, 'silver', { from: notAConsumer }));
 
-    await HST.transfer(accounts[2], tickets['bronze'], { from: accounts[1] });
+    const addedAndRemovedConsumer = accounts[3];
+    await HST.addAllowedConsumers([addedAndRemovedConsumer], { from: contractOwner });
+    await HST.removeAllowedConsumers([addedAndRemovedConsumer], { from: contractOwner });
 
-    const isStillBronze = await HST.isTicketValid.call(accounts[1], 'bronze');
+    expectThrow(HST.consumeTicket.call(ticket, 'silver', { from: addedAndRemovedConsumer }));
+  });
 
-    assert.isFalse(isStillBronze);
+  it('ticket: should be consumed when an allowed consumer consumes it', async () => {
+    const ticketKey = 'silver';
+    const ticketConsKey = 'bronze';
+    const ticket = accounts[1];
+    await HST.allocateNewTicket(ticket, ticketKey, { from: contractOwner });
 
-    const receiverBalance = await HST.balanceOf.call(accounts[2]);
+    const consumer = accounts[2];
+    await HST.addAllowedConsumers([consumer], { from: contractOwner });
 
-    assert.strictEqual(receiverBalance.toNumber(), tickets['bronze']);
+    await HST.consumeTicket(ticket, ticketConsKey, { from: consumer });
+
+    const ticketBalance = await HST.balanceOfTicket.call(ticket);
+    assert.strictEqual(ticketBalance.toNumber(), tickets[ticketKey] - tickets[ticketConsKey]);
+    const consBalance = await HST.balanceOfConsumer.call(consumer);
+    assert.strictEqual(consBalance.toNumber(), tickets[ticketConsKey]);
   });
 
   it('ticket: should not be able to create tickets', async () => {
     await HST.allocateNewTicket(accounts[1], 'silver', { from: accounts[1] });
-    const ticketBalance = await HST.balanceOf.call(accounts[1]);
+    const ticketBalance = await HST.balanceOfTicket.call(accounts[1]);
     assert.strictEqual(ticketBalance.toNumber(), 0);
   });
 
-  it('transfers: should fail when trying to transfer 1 to accounts[1] with accounts[0] having 0', () => {
-    expectThrow(HST.transfer.call(accounts[1], 1, { from: accounts[0] }));
+  it('ticket events: should fire Consume when a ticket has been consumed', async () => {
+    const ticket = accounts[0];
+    const ticketKey = 'silver';
+    await HST.allocateNewTicket(ticket, ticketKey, { from: contractOwner });
+
+    const consumer = accounts[2];
+    await HST.addAllowedConsumers([consumer], { from: contractOwner });
+
+    const res = await HST.consumeTicket(ticket, ticketKey, { from: consumer });
+
+    const consumeLog = res.logs.find(element => element.event.match('Consume'));
+
+    assert.strictEqual(consumeLog.args.ticket, ticket);
+    assert.strictEqual(consumeLog.args.consumer, consumer);
+    assert.strictEqual(consumeLog.args.tType, ticketKey);
   });
 
-  it('transfers: should handle zero-transfers normally', async () => {
-    assert(await HST.transfer.call(accounts[1], 0, { from: accounts[0] }), 'zero-transfer has failed');
+  it('consumer: should destroy consumer balance when debiting', async () => {
+    const ticket = accounts[0];
+    const ticketKey = 'silver';
+    await HST.allocateNewTicket(ticket, ticketKey, { from: contractOwner });
+
+    const consumer = accounts[2];
+    await HST.addAllowedConsumers([consumer], { from: contractOwner });
+
+    await HST.consumeTicket(ticket, ticketKey, { from: consumer });
+
+    const balanceBeforeDebit = await HST.balanceOfConsumer.call(consumer);
+
+    assert.strictEqual(balanceBeforeDebit.toNumber(), tickets[ticketKey]);
+
+    const totalSupplyBeforeDebit = await HST.getTotalSupply.call();
+
+    assert.strictEqual(totalSupplyBeforeDebit.toNumber(), tickets[ticketKey]);
+
+    await HST.debit({ from: consumer });
+
+    const balanceAfterDebit = await HST.balanceOfConsumer.call(consumer);
+
+    assert.strictEqual(balanceAfterDebit.toNumber(), 0);
+
+    const totalSupplyAfterDebit = await HST.getTotalSupply.call();
+
+    assert.strictEqual(totalSupplyAfterDebit.toNumber(), 0); // Debit detroys coins
   });
 
-  // NOTE: testing uint256 wrapping is impossible since you can't supply > 2^256 -1
-  // todo: transfer max amounts
+  it('consumer event: should fire Debit event when a consumer has been debitted', async () => {
+    const ticket = accounts[0];
+    const ticketKey = 'silver';
+    await HST.allocateNewTicket(ticket, ticketKey, { from: contractOwner });
 
-  // APPROVALS
-  it('approvals: msg.sender should approve 100 to accounts[1]', async () => {
-    await HST.allocateNewTicket(accounts[0], 'silver', { from: contractOwner });
-    await HST.approve(accounts[1], 100, { from: accounts[0] });
-    const allowance = await HST.allowance.call(accounts[0], accounts[1]);
-    assert.strictEqual(allowance.toNumber(), 100);
-  });
+    const consumer = accounts[2];
+    await HST.addAllowedConsumers([consumer], { from: contractOwner });
 
-  // should approve 100 of msg.sender & withdraw 50, twice. (should succeed)
-  it('approvals: msg.sender approves accounts[1] of 100 & withdraws 20 twice.', async () => {
-    let balance = tickets['silver'];
+    await HST.consumeTicket(ticket, ticketKey, { from: consumer });
 
-    await HST.allocateNewTicket(accounts[0], 'silver', { from: contractOwner });
+    const balanceBeforeDebit = await HST.balanceOfConsumer.call(consumer);
 
-    await HST.approve(accounts[1], 100, { from: accounts[0] });
-    const allowance01 = await HST.allowance.call(accounts[0], accounts[1]);
-    assert.strictEqual(allowance01.toNumber(), 100);
+    const res = await HST.debit({ from: consumer });
 
-    await HST.transferFrom(accounts[0], accounts[2], 20, { from: accounts[1] });
-    const allowance012 = await HST.allowance.call(accounts[0], accounts[1]);
-    assert.strictEqual(allowance012.toNumber(), 80);
+    const debitLog = res.logs.find(element => element.event.match('Debit'));
 
-    const balance2 = await HST.balanceOf.call(accounts[2]);
-    assert.strictEqual(balance2.toNumber(), 20);
-
-    const balance0 = await HST.balanceOf.call(accounts[0]);
-    assert.strictEqual(balance0.toNumber(), balance - 20);
-
-    // FIRST tx done.
-    // onto next.
-    await HST.transferFrom(accounts[0], accounts[2], 20, { from: accounts[1] });
-    const allowance013 = await HST.allowance.call(accounts[0], accounts[1]);
-    assert.strictEqual(allowance013.toNumber(), 60);
-
-    const balance22 = await HST.balanceOf.call(accounts[2]);
-    assert.strictEqual(balance22.toNumber(), 40);
-
-    const balance02 = await HST.balanceOf.call(accounts[0]);
-    assert.strictEqual(balance02.toNumber(), balance - 40);
-  });
-  //
-  // should approve 100 of msg.sender & withdraw 50 & 60 (should fail).
-  it('approvals: msg.sender approves accounts[1] of 100 & withdraws 50 & 60 (2nd tx should fail)', async () => {
-    let balance = tickets['silver'];
-
-    await HST.allocateNewTicket(accounts[0], 'silver', { from: contractOwner });
-
-    await HST.approve(accounts[1], 100, { from: accounts[0] });
-    const allowance01 = await HST.allowance.call(accounts[0], accounts[1]);
-    assert.strictEqual(allowance01.toNumber(), 100);
-
-    await HST.transferFrom(accounts[0], accounts[2], 50, { from: accounts[1] });
-    const allowance012 = await HST.allowance.call(accounts[0], accounts[1]);
-    assert.strictEqual(allowance012.toNumber(), 50);
-
-    const balance2 = await HST.balanceOf.call(accounts[2]);
-    assert.strictEqual(balance2.toNumber(), 50);
-
-    const balance0 = await HST.balanceOf.call(accounts[0]);
-    assert.strictEqual(balance0.toNumber(), balance - 50);
-
-    // FIRST tx done.
-    // onto next.
-    expectThrow(HST.transferFrom.call(accounts[0], accounts[2], 60, { from: accounts[1] }));
-  });
-
-  it('approvals: attempt withdrawal from account with no allowance (should fail)', () => expectThrow(HST.transferFrom.call(accounts[0], accounts[2], 60, { from: accounts[1] })));
-
-  it('approvals: allow accounts[1] 100 to withdraw from accounts[0]. Withdraw 60 and then approve 0 & attempt transfer.', async () => {
-    await HST.allocateNewTicket(accounts[0], 'silver', { from: contractOwner });
-
-    await HST.approve(accounts[1], 100, { from: accounts[0] });
-    await HST.transferFrom(accounts[0], accounts[2], 60, { from: accounts[1] });
-    await HST.approve(accounts[1], 0, { from: accounts[0] });
-    expectThrow(HST.transferFrom.call(accounts[0], accounts[2], 10, { from: accounts[1] }));
-  });
-
-  /* eslint-disable no-underscore-dangle */
-  it('events: should fire Transfer event properly', async () => {
-    let balance = tickets['silver'];
-
-    await HST.allocateNewTicket(accounts[0], 'silver', { from: contractOwner });
-
-    const res = await HST.transfer(accounts[1], '100', { from: accounts[0] });
-    const transferLog = res.logs.find(element => element.event.match('Transfer'));
-    assert.strictEqual(transferLog.args._from, accounts[0]);
-    assert.strictEqual(transferLog.args._to, accounts[1]);
-    assert.strictEqual(transferLog.args._value.toString(), '100');
-  });
-
-  it('events: should fire Transfer event normally on a zero transfer', async () => {
-    const res = await HST.transfer(accounts[1], '0', { from: accounts[0] });
-    const transferLog = res.logs.find(element => element.event.match('Transfer'));
-    assert.strictEqual(transferLog.args._from, accounts[0]);
-    assert.strictEqual(transferLog.args._to, accounts[1]);
-    assert.strictEqual(transferLog.args._value.toString(), '0');
-  });
-
-  it('events: should fire Approval event properly', async () => {
-    let balance = tickets['silver'];
-
-    await HST.allocateNewTicket(accounts[0], 'silver', { from: contractOwner });
-    
-    const res = await HST.approve(accounts[1], '100', { from: accounts[0] });
-    const approvalLog = res.logs.find(element => element.event.match('Approval'));
-    assert.strictEqual(approvalLog.args._owner, accounts[0]);
-    assert.strictEqual(approvalLog.args._spender, accounts[1]);
-    assert.strictEqual(approvalLog.args._value.toString(), '100');
+    assert.strictEqual(debitLog.args.consumer, consumer);
+    assert.strictEqual(debitLog.args.amount.toNumber(), balanceBeforeDebit.toNumber());
   });
 });

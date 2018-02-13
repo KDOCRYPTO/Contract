@@ -1,5 +1,5 @@
 {
-  "name": "erc20-tokens",
+  "name": "kdo",
   "version": "0.0.1",
   "description": "Ethereum Token Contracts",
   "main": "truffle.js",
@@ -7,6 +7,7 @@
     "test": "test"
   },
   "scripts": {
+    "reset": "rm -rf build && npm run compile && truffle migrate --network testrpc",
     "compile": "truffle compile",
     "fix:js": "eslint --fix test/**/*.js migrations/**/*.js",
     "lint:js": "eslint test/**/*.js migrations/**/*.js",
