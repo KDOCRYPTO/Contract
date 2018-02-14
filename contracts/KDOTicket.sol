@@ -51,7 +51,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
             balance: _ticketValue,
             tType: _ticketType,
             createdAt: now,
-            expireAt: now * 2 years
+            expireAt: now + 2 years
         });
 
         totalSupply += _ticketValue;
@@ -70,6 +70,11 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
             return true;
         }
         return false;
+    }
+
+    // Get ticket expiration date
+    function ticketExpiration(address _ticket) public view returns (uint256 expiration) {
+        return activeTickets[_ticket].expireAt;
     }
 
     // Consume a ticket. A ticket can keep some balances so it's reusable.

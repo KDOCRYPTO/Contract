@@ -93,6 +93,46 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(consBalance.toNumber(), tickets[ticketConsKey]);
   });
 
+  it('ticket: should not be valid when no value', async () => {
+    const ticketKey = 'silver';
+    const ticket = accounts[1];
+    await HST.allocateNewTicket(ticket, ticketKey, { from: contractOwner });
+
+    const isValid = await HST.isTicketValid(ticket, ticketKey);
+    assert.isTrue(isValid);
+
+    const consumer = accounts[2];
+    await HST.addAllowedConsumers([consumer], { from: contractOwner });
+    await HST.consumeTicket(ticket, ticketKey, { from: consumer });
+
+    const isValidAfterBeingConsumed = await HST.isTicketValid(ticket, ticketKey);
+    assert.isFalse(isValidAfterBeingConsumed);
+  });
+
+  it('ticket: should not be valid when expired', async () => {
+    const ticketKey = 'silver';
+    const ticket = accounts[1];
+    await HST.allocateNewTicket(ticket, ticketKey, { from: contractOwner });
+
+    // add up +2years
+    await web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_increaseTime',
+      params: [60 * 60 * 24 * 365 * 2],
+      id: 0,
+    });
+
+    await web3.currentProvider.send({
+      jsonrpc: '2.0',
+      method: 'evm_mine',
+      params: [],
+      id: 1,
+    });
+
+    const isTicketValid = await HST.isTicketValid.call(ticket, ticketKey);
+    assert.isFalse(isTicketValid);
+  });
+
   it('ticket: should not be able to create tickets', async () => {
     await HST.allocateNewTicket(accounts[1], 'silver', { from: accounts[1] });
     const ticketBalance = await HST.balanceOfTicket.call(accounts[1]);
