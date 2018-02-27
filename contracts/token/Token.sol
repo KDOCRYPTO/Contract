@@ -10,7 +10,8 @@ contract Token {
 
     address public owner;
 
-    uint256 totalSupply;
+    uint256 public totalSupply;
+    uint256 public circulatingSupply;
 
     /*
     NOTE:
@@ -29,6 +30,7 @@ contract Token {
         string _tokenSymbol
     ) public {
         totalSupply = _initialAmount;
+        circulatingSupply = _initialAmount;
         name = _tokenName;                                   // Set the name for display purposes
         decimals = _decimalUnits;                            // Amount of decimals for display purposes
         symbol = _tokenSymbol;                               // Set the symbol for display purposes

@@ -17,19 +17,20 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     mapping (address => uint256) public consumersBalance;
     mapping (address => bool) public allowedConsumers;
 
-    event Debit(address consumer, uint256 amount, uint256 date);
+    event DebitEvt(address consumer, uint256 amount, uint256 date);
     event Consume(address ticket, address consumer, string tType, uint256 date);
+    event Cancel(address ticket, uint256 date);
 
-    mapping (string => uint256) ticketTypes;
+    mapping (uint256 => string) public ticketTypes;
 
     function KDOTicket() public {
-        ticketTypes["bronze"] = 99;
-        ticketTypes["silver"] = 149;
-        ticketTypes["gold"] = 249;
+        ticketTypes[99] = "bronze";
+        ticketTypes[149] = "silver";
+        ticketTypes[249] = "gold";
     }
 
-    modifier onlyExistingTicket(string _ticketType) {
-        require(ticketTypes[_ticketType] > 0);
+    modifier onlyExistingTicket(uint256 _amount) {
+        require(bytes(ticketTypes[_amount]).length > 0);
         _;
     }
 
@@ -39,34 +40,45 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     }
 
     // Allocates a ticket to an address and create tokens (accordingly to the value of the allocated ticket)
-    function allocateNewTicket(address _to, string _ticketType)
+    function allocateNewTicket(address _to, uint256 _amount)
         public
         onlyContractOwner()
-        onlyExistingTicket(_ticketType)
+        onlyExistingTicket(_amount)
         returns (bool success)
     {
-        uint256 _ticketValue = ticketTypes[_ticketType];
-
         activeTickets[_to] = Ticket({
-            balance: _ticketValue,
-            tType: _ticketType,
+            balance: _amount,
+            tType: ticketTypes[_amount],
             createdAt: now,
             expireAt: now + 2 years
         });
 
-        totalSupply += _ticketValue;
+        totalSupply += _amount;
+        circulatingSupply += _amount;
 
         return true;
     }
 
-    // Checks if an address can handle the ticket type
-    function isTicketValid(address _ticketAddr, string _ticketType)
+    // Nullify a ticket. Used in special case when a ticket hasn't been received
+    function cancelTicket(address _to)
         public
-        onlyExistingTicket(_ticketType)
+        onlyContractOwner()
+    {
+        circulatingSupply -= activeTickets[_to].balance;
+        totalSupply -= activeTickets[_to].balance;
+        activeTickets[_to].balance = 0;
+        activeTickets[_to].expireAt = now;
+
+        Cancel(_to, now);
+    }
+
+    // Checks if an address can handle the ticket type
+    function isTicketValid(address _ticketAddr)
+        public
         view
         returns (bool valid)
     {
-        if (activeTickets[_ticketAddr].balance >= ticketTypes[_ticketType] && now < activeTickets[_ticketAddr].expireAt) {
+        if (activeTickets[_ticketAddr].balance > 0 && now < activeTickets[_ticketAddr].expireAt) {
             return true;
         }
         return false;
@@ -77,32 +89,31 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         return activeTickets[_ticket].expireAt;
     }
 
-    // Consume a ticket. A ticket can keep some balances so it's reusable.
+    // Consume a ticket. Sets it balance to 0
     // It triggers Consume event for logs
-    function consumeTicket(address _ticketAddr, string _ticketType)
+    function consumeTicket(address _ticketAddr)
         public
-        onlyExistingTicket(_ticketType)
         onlyAllowedConsumer()
         returns (bool success)
     {
-        if (!isTicketValid(_ticketAddr, _ticketType)) {
+        if (!isTicketValid(_ticketAddr)) {
             return false;
         }
 
-        uint256 value = ticketTypes[_ticketType];
+        uint256 value = activeTickets[_ticketAddr].balance;
 
-        activeTickets[_ticketAddr].balance -= value;
+        activeTickets[_ticketAddr].balance = 0;
 
         consumersBalance[msg.sender] += value;
 
-        Consume(_ticketAddr, msg.sender, _ticketType, now);
+        Consume(_ticketAddr, msg.sender, activeTickets[_ticketAddr].tType, now);
 
         return true;
     }
 
-    // Returns the balance of a ticket
-    function balanceOfTicket(address _address) public view returns (uint256 balance) {
-        return activeTickets[_address].balance;
+    // Returns the type of a ticket
+    function infoOfTicket(address _address) public view returns (uint256, string, uint, uint) {
+        return (activeTickets[_address].balance, activeTickets[_address].tType, activeTickets[_address].createdAt, activeTickets[_address].expireAt);
     }
 
     // Returns the balance of a consumer
@@ -115,11 +126,11 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     function debit() public {
         uint256 _balance = consumersBalance[msg.sender];
 
-        totalSupply -= _balance;
+        circulatingSupply -= _balance;
 
         consumersBalance[msg.sender] = 0;
 
-        Debit(msg.sender, _balance, now);
+        DebitEvt(msg.sender, _balance, now);
     }
 
     // Adds multiple addresses to register them as Consumers
