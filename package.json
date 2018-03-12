@@ -25,8 +25,7 @@
     "ethereum"
   ],
   "authors": [
-    "Simon de la Rouviere <simon.delarouviere@consensys.net>",
-    "Joseph Chow <joseph.chow@consensys.net>"
+    "Jonathan Serra <jonathan@blocs.xyz>"
   ],
   "license": "MIT",
   "bugs": {
