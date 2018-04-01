@@ -17,9 +17,9 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     mapping (address => uint256) public consumersBalance;
     mapping (address => bool) public allowedConsumers;
 
-    event DebitEvt(address consumer, uint256 amount, uint256 date);
-    event Consume(address ticket, address consumer, string tType, uint256 date);
+    event CreditEvt(address ticket, address consumer, string tType, uint256 date);
     event Cancel(address ticket, uint256 date);
+    event DebitEvt(address consumer, uint256 amount, uint256 date);
 
     mapping (uint256 => string) public ticketTypes;
 
@@ -29,13 +29,16 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         ticketTypes[249] = "gold";
     }
 
+    // Allows to receive balance (needed to give funds to tickets)
+    function () public payable {}
+
     modifier onlyExistingTicket(uint256 _amount) {
         require(bytes(ticketTypes[_amount]).length > 0);
         _;
     }
 
-    modifier onlyAllowedConsumer() {
-        require(allowedConsumers[msg.sender]);
+    modifier onlyAllowedConsumer(address _consumer) {
+        require(allowedConsumers[_consumer]);
         _;
     }
 
@@ -46,12 +49,17 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         onlyExistingTicket(_amount)
         returns (bool success)
     {
+        require(this.balance >= 82300);
+
         activeTickets[_to] = Ticket({
             balance: _amount,
             tType: ticketTypes[_amount],
             createdAt: now,
             expireAt: now + 2 years
         });
+
+        // Give minimal GAS value to a ticket
+        _to.transfer(80000);
 
         totalSupply += _amount;
         circulatingSupply += _amount;
@@ -89,31 +97,30 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         return activeTickets[_ticket].expireAt;
     }
 
-    // Consume a ticket. Sets it balance to 0
+    // A ticket credit the consumer balance. Sets its balance to 0 and adds the value to the consumer balance
     // It triggers Consume event for logs
-    function consumeTicket(address _ticketAddr)
+    function credit(address _consumer)
         public
-        onlyAllowedConsumer()
+        onlyAllowedConsumer(_consumer)
         returns (bool success)
     {
-        if (!isTicketValid(_ticketAddr)) {
-            return false;
-        }
+        require(isTicketValid(msg.sender));
 
-        uint256 value = activeTickets[_ticketAddr].balance;
+        uint256 value = activeTickets[msg.sender].balance;
 
-        activeTickets[_ticketAddr].balance = 0;
+        activeTickets[msg.sender].balance = 0;
 
-        consumersBalance[msg.sender] += value;
+        consumersBalance[_consumer] += value;
 
-        Consume(_ticketAddr, msg.sender, activeTickets[_ticketAddr].tType, now);
+        CreditEvt(msg.sender, _consumer, activeTickets[msg.sender].tType, now);
 
         return true;
     }
 
     // Returns the type of a ticket
-    function infoOfTicket(address _address) public view returns (uint256, string, uint, uint) {
-        return (activeTickets[_address].balance, activeTickets[_address].tType, activeTickets[_address].createdAt, activeTickets[_address].expireAt);
+    function infoOfTicket(address _address) public view returns (uint256, string, bool, uint, uint) {
+        bool isValid = isTicketValid(_address);
+        return (activeTickets[_address].balance, activeTickets[_address].tType, isValid, activeTickets[_address].createdAt, activeTickets[_address].expireAt);
     }
 
     // Returns the balance of a consumer
@@ -122,7 +129,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     }
 
     // Detroy tokens from consumer balance.
-    // It triggers Credit event
+    // It triggers Debit event
     function debit() public {
         uint256 _balance = consumersBalance[msg.sender];
 

@@ -15,6 +15,12 @@ contract('KDOTicket', (accounts) => {
   beforeEach(async () => {
     HST = await KDOTicket.new({ from: accounts[0] });
     contractOwner = accounts[0];
+
+    await web3.eth.sendTransaction({
+      from: accounts[1],
+      to: HST.address,
+      value: web3.toWei(0.5, 'ether'),
+    });
   });
 
   it('creation: test correct setting of vanity information', async () => {
@@ -56,23 +62,23 @@ contract('KDOTicket', (accounts) => {
     expectThrow(HST.allocateNewTicket.call(accounts[1], 20, { from: contractOwner }));
   });
 
-  it('ticket: should not be consumable by a non consumer', async () => {
+  it('ticket: should not credit a non consumer', async () => {
     const tKey = 'silver';
     const ticket = accounts[1];
     await HST.allocateNewTicket(ticket, tickets[tKey], { from: contractOwner });
 
     const notAConsumer = accounts[2];
 
-    expectThrow(HST.consumeTicket.call(ticket, { from: notAConsumer }));
+    expectThrow(HST.credit.call(notAConsumer, { from: ticket }));
 
     const addedAndRemovedConsumer = accounts[3];
     await HST.addAllowedConsumers([addedAndRemovedConsumer], { from: contractOwner });
     await HST.removeAllowedConsumers([addedAndRemovedConsumer], { from: contractOwner });
 
-    expectThrow(HST.consumeTicket.call(ticket, { from: addedAndRemovedConsumer }));
+    expectThrow(HST.credit.call(addedAndRemovedConsumer, { from: ticket }));
   });
 
-  it('ticket: should be consumed when an allowed consumer consumes it', async () => {
+  it('ticket: should credit allowed consumer', async () => {
     const ticketKey = 'silver';
     const ticket = accounts[1];
     await HST.allocateNewTicket(ticket, tickets[ticketKey], { from: contractOwner });
@@ -80,12 +86,24 @@ contract('KDOTicket', (accounts) => {
     const consumer = accounts[2];
     await HST.addAllowedConsumers([consumer], { from: contractOwner });
 
-    await HST.consumeTicket(ticket, { from: consumer });
+    await HST.credit(consumer, { from: ticket });
 
     const ticketInfo = await HST.infoOfTicket.call(ticket);
     assert.strictEqual(ticketInfo[0].toNumber(), 0);
     const consBalance = await HST.balanceOfConsumer.call(consumer);
     assert.strictEqual(consBalance.toNumber(), tickets[ticketKey]);
+  });
+
+  it('ticket: should have assigned GAS of 80000', async () => {
+    const ticket = accounts[2];
+
+    const balanceBeforeAllocation = await web3.eth.getBalance(ticket);
+
+    await HST.allocateNewTicket(ticket, tickets.bronze, { from: contractOwner });
+
+    const balanceAfterAllocation = await web3.eth.getBalance(ticket);
+
+    assert.isAtLeast(balanceAfterAllocation.toNumber() - balanceBeforeAllocation.toNumber(), 80000);
   });
 
   it('ticket: should not be valid when no value', async () => {
@@ -98,7 +116,7 @@ contract('KDOTicket', (accounts) => {
 
     const consumer = accounts[2];
     await HST.addAllowedConsumers([consumer], { from: contractOwner });
-    await HST.consumeTicket(ticket, { from: consumer });
+    await HST.credit(consumer, { from: ticket });
 
     const isValidAfterBeingConsumed = await HST.isTicketValid(ticket);
     assert.isFalse(isValidAfterBeingConsumed);
@@ -160,13 +178,13 @@ contract('KDOTicket', (accounts) => {
     const consumer = accounts[2];
     await HST.addAllowedConsumers([consumer], { from: contractOwner });
 
-    const res = await HST.consumeTicket(ticket, { from: consumer });
+    const res = await HST.credit(consumer, { from: ticket });
 
-    const consumeLog = res.logs.find(element => element.event.match('Consume'));
+    const creditLog = res.logs.find(element => element.event.match('CreditEvt'));
 
-    assert.strictEqual(consumeLog.args.ticket, ticket);
-    assert.strictEqual(consumeLog.args.consumer, consumer);
-    assert.strictEqual(consumeLog.args.tType, ticketKey);
+    assert.strictEqual(creditLog.args.ticket, ticket);
+    assert.strictEqual(creditLog.args.consumer, consumer);
+    assert.strictEqual(creditLog.args.tType, ticketKey);
   });
 
   it('ticket events: should fire Cancel when a ticket has been cancelled', async () => {
@@ -182,14 +200,14 @@ contract('KDOTicket', (accounts) => {
   });
 
   it('consumer: should destroy consumer balance when debiting', async () => {
-    const ticket = accounts[0];
+    const ticket = accounts[1];
     const ticketKey = 'silver';
     await HST.allocateNewTicket(ticket, tickets[ticketKey], { from: contractOwner });
 
     const consumer = accounts[2];
     await HST.addAllowedConsumers([consumer], { from: contractOwner });
 
-    await HST.consumeTicket(ticket, { from: consumer });
+    await HST.credit(consumer, { from: ticket });
 
     const balanceBeforeDebit = await HST.balanceOfConsumer.call(consumer);
 
@@ -211,22 +229,13 @@ contract('KDOTicket', (accounts) => {
   });
 
   it('consumer event: should fire Debit event when a consumer has been debitted', async () => {
-    const ticket = accounts[0];
-    const ticketKey = 'silver';
-    await HST.allocateNewTicket(ticket, tickets[ticketKey], { from: contractOwner });
-
-    const consumer = accounts[2];
-    await HST.addAllowedConsumers([consumer], { from: contractOwner });
-
-    await HST.consumeTicket(ticket, { from: consumer });
-
-    const balanceBeforeDebit = await HST.balanceOfConsumer.call(consumer);
+    const consumer = accounts[3];
 
     const res = await HST.debit({ from: consumer });
 
     const debitLog = res.logs.find(element => element.event.match('DebitEvt'));
 
     assert.strictEqual(debitLog.args.consumer, consumer);
-    assert.strictEqual(debitLog.args.amount.toNumber(), balanceBeforeDebit.toNumber());
+    assert.strictEqual(debitLog.args.amount.toNumber(), 0);
   });
 });
