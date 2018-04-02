@@ -23,7 +23,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
-    function KDOTicket() public {
+    function KDOTicket() payable public {
         ticketTypes[99] = "bronze";
         ticketTypes[149] = "silver";
         ticketTypes[249] = "gold";
