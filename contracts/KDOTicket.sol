@@ -23,14 +23,11 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
-    function KDOTicket() payable public {
+    function KDOTicket() public {
         ticketTypes[99] = "bronze";
         ticketTypes[149] = "silver";
         ticketTypes[249] = "gold";
     }
-
-    // Allows to receive balance (needed to give funds to tickets)
-    function () public payable {}
 
     modifier onlyExistingTicket(uint256 _amount) {
         require(bytes(ticketTypes[_amount]).length > 0);
@@ -45,11 +42,12 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     // Allocates a ticket to an address and create tokens (accordingly to the value of the allocated ticket)
     function allocateNewTicket(address _to, uint256 _amount)
         public
+        payable
         onlyContractOwner()
         onlyExistingTicket(_amount)
         returns (bool success)
     {
-        require(this.balance >= 82300);
+        require(msg.value == 60000);
 
         activeTickets[_to] = Ticket({
             balance: _amount,
@@ -59,7 +57,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         });
 
         // Give minimal GAS value to a ticket
-        _to.transfer(80000);
+        _to.transfer(msg.value);
 
         totalSupply += _amount;
         circulatingSupply += _amount;
@@ -99,14 +97,19 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     // A ticket credit the consumer balance. Sets its balance to 0 and adds the value to the consumer balance
     // It triggers Consume event for logs
-    function credit(address _consumer)
+    function creditConsumer(address _consumer)
         public
+        payable
         onlyAllowedConsumer(_consumer)
         returns (bool success)
     {
         require(isTicketValid(msg.sender));
 
         uint256 value = activeTickets[msg.sender].balance;
+
+        // Transfer ticket balance to owner as owner allocate some value when allocating
+        // the ticket
+        owner.transfer(msg.value);
 
         activeTickets[msg.sender].balance = 0;
 
@@ -130,7 +133,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     // Detroy tokens from consumer balance.
     // It triggers Debit event
-    function debit() public {
+    function debitConsumer() public {
         uint256 _balance = consumersBalance[msg.sender];
 
         circulatingSupply -= _balance;

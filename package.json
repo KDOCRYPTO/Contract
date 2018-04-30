@@ -33,6 +33,7 @@
   },
   "homepage": "https://github.com/ConsenSys/Tokens#readme",
   "dependencies": {
+    "ganache-core": "git://github.com/trufflesuite/ganache-core.git#develop",
     "truffle": "4.0.1",
     "truffle-hdwallet-provider": "0.0.3"
   },

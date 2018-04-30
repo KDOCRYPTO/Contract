@@ -22,7 +22,7 @@
     "max-len": ["error", {
       "ignoreComments": true,
       "ignoreTrailingComments": true,
-      "code": 120
+      "code": 1200
     }],
     "prefer-destructuring": ["error", {
       "AssignmentExpression": {
