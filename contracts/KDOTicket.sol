@@ -18,7 +18,6 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     mapping (address => bool) public allowedConsumers;
 
     event CreditEvt(address ticket, address consumer, string tType, uint256 date);
-    event Cancel(address ticket, uint256 date);
     event DebitEvt(address consumer, uint256 amount, uint256 date);
 
     mapping (uint256 => string) public ticketTypes;
@@ -34,20 +33,15 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         _;
     }
 
-    modifier onlyAllowedConsumer(address _consumer) {
-        require(allowedConsumers[_consumer]);
-        _;
-    }
-
     // Allocates a ticket to an address and create tokens (accordingly to the value of the allocated ticket)
     function allocateNewTicket(address _to, uint256 _amount)
         public
         payable
-        onlyContractOwner()
         onlyExistingTicket(_amount)
         returns (bool success)
     {
-        require(msg.value == 60000);
+        uint256 costInWei = costOfTicket(_amount); // costs 0.3% of the amount (represented in wei, so its indeed 0.3% of ether value)
+        require(msg.value == 60000 + costInWei);
 
         activeTickets[_to] = Ticket({
             balance: _amount,
@@ -57,25 +51,15 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         });
 
         // Give minimal GAS value to a ticket
-        _to.transfer(msg.value);
+        _to.transfer(60000);
+
+        // Price of the ticket
+        owner.transfer(costInWei);
 
         totalSupply += _amount;
         circulatingSupply += _amount;
 
         return true;
-    }
-
-    // Nullify a ticket. Used in special case when a ticket hasn't been received
-    function cancelTicket(address _to)
-        public
-        onlyContractOwner()
-    {
-        circulatingSupply -= activeTickets[_to].balance;
-        totalSupply -= activeTickets[_to].balance;
-        activeTickets[_to].balance = 0;
-        activeTickets[_to].expireAt = now;
-
-        Cancel(_to, now);
     }
 
     // Checks if an address can handle the ticket type
@@ -100,7 +84,6 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     function creditConsumer(address _consumer)
         public
         payable
-        onlyAllowedConsumer(_consumer)
         returns (bool success)
     {
         require(isTicketValid(msg.sender));
@@ -143,17 +126,9 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         DebitEvt(msg.sender, _balance, now);
     }
 
-    // Adds multiple addresses to register them as Consumers
-    function addAllowedConsumers(address[] _addresses) public onlyContractOwner() {
-        for (uint i = 0; i < _addresses.length; i++) {
-            allowedConsumers[_addresses[i]] = true;
-        }
-    }
-
-    // Removes multiple addresses from consumers list
-    function removeAllowedConsumers(address[] _addresses) public onlyContractOwner() {
-        for (uint i = 0; i < _addresses.length; i++) {
-            allowedConsumers[_addresses[i]] = false;
-        }
+    // Returns the cost of a ticket regarding its amount
+    // Returned value is represented in Wei
+    function costOfTicket(uint256 _amount) public pure returns(uint256 cost) {
+        return _amount * (0.003 * 1000000000000000000);
     }
 }
