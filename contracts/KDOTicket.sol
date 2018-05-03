@@ -22,6 +22,8 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
+    uint256 public ticketGasValue = 60000;
+
     function KDOTicket() public {
         ticketTypes[99] = "bronze";
         ticketTypes[149] = "silver";
@@ -41,7 +43,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         returns (bool success)
     {
         uint256 costInWei = costOfTicket(_amount); // costs 0.3% of the amount (represented in wei, so its indeed 0.3% of ether value)
-        require(msg.value == 60000 + costInWei);
+        require(msg.value == costInWei);
 
         activeTickets[_to] = Ticket({
             balance: _amount,
@@ -51,10 +53,10 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         });
 
         // Give minimal GAS value to a ticket
-        _to.transfer(60000);
+        _to.transfer(ticketGasValue);
 
         // Price of the ticket
-        owner.transfer(costInWei);
+        owner.transfer(costInWei - ticketGasValue);
 
         totalSupply += _amount;
         circulatingSupply += _amount;
@@ -128,7 +130,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     // Returns the cost of a ticket regarding its amount
     // Returned value is represented in Wei
-    function costOfTicket(uint256 _amount) public pure returns(uint256 cost) {
-        return _amount * (0.003 * 1000000000000000000);
+    function costOfTicket(uint256 _amount) public view returns(uint256 cost) {
+        return (_amount * (0.003 * 1000000000000000000)) + ticketGasValue;
     }
 }
