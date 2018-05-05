@@ -65,7 +65,6 @@ contract('KDOTicket', (accounts) => {
   });
 
   it('ticket: should transfer ticket amount to accounts[1]', async () => {
-    console.log(tickets.bronze.value);
     await HST.allocateNewTicket(accounts[1], tickets.bronze.amount, { from: contractOwner, value: tickets.bronze.value });
 
     const ticket = await HST.infoOfTicket.call(accounts[1]);
@@ -203,7 +202,7 @@ contract('KDOTicket', (accounts) => {
 
     assert.strictEqual(totalSupplyBeforeDebit.toNumber(), tickets[ticketKey].amount);
 
-    await HST.debitConsumer({ from: consumer });
+    await HST.debit({ from: consumer });
 
     const balanceAfterDebit = await HST.balanceOfConsumer.call(consumer);
 
@@ -217,7 +216,7 @@ contract('KDOTicket', (accounts) => {
   it('consumer event: should fire Debit event when a consumer has been debitted', async () => {
     const consumer = accounts[3];
 
-    const res = await HST.debitConsumer({ from: consumer });
+    const res = await HST.debit({ from: consumer });
 
     const debitLog = res.logs.find(element => element.event.match('DebitEvt'));
 

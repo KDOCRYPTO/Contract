@@ -118,7 +118,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     // Detroy tokens from consumer balance.
     // It triggers Debit event
-    function debitConsumer() public {
+    function debit() public {
         uint256 _balance = consumersBalance[msg.sender];
 
         circulatingSupply -= _balance;
