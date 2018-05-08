@@ -22,17 +22,25 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
-    uint256 public ticketGasValue = 60000;
+    uint256 public ticketBaseValue;
 
     function KDOTicket() public {
         ticketTypes[99] = "bronze";
         ticketTypes[149] = "silver";
         ticketTypes[249] = "gold";
+
+        // 120 Gwei
+        ticketBaseValue = 1200000000000000;
     }
 
     modifier onlyExistingTicket(uint256 _amount) {
         require(bytes(ticketTypes[_amount]).length > 0);
         _;
+    }
+
+    function updateTicketBaseValue(uint256 _value) public {
+      require(msg.sender == owner);
+      ticketBaseValue = _value;
     }
 
     // Allocates a ticket to an address and create tokens (accordingly to the value of the allocated ticket)
@@ -53,10 +61,10 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         });
 
         // Give minimal GAS value to a ticket
-        _to.transfer(ticketGasValue);
+        _to.transfer(ticketBaseValue);
 
         // Price of the ticket
-        owner.transfer(costInWei - ticketGasValue);
+        owner.transfer(costInWei - ticketBaseValue);
 
         totalSupply += _amount;
         circulatingSupply += _amount;
@@ -85,16 +93,11 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     // It triggers Consume event for logs
     function creditConsumer(address _consumer)
         public
-        payable
         returns (bool success)
     {
         require(isTicketValid(msg.sender));
 
         uint256 value = activeTickets[msg.sender].balance;
-
-        // Transfer ticket balance to owner as owner allocate some value when allocating
-        // the ticket
-        owner.transfer(msg.value);
 
         activeTickets[msg.sender].balance = 0;
 
@@ -131,6 +134,6 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     // Returns the cost of a ticket regarding its amount
     // Returned value is represented in Wei
     function costOfTicket(uint256 _amount) public view returns(uint256 cost) {
-        return (_amount * (0.003 * 1000000000000000000)) + ticketGasValue;
+        return (_amount * (0.003 * 1000000000000000000)) + ticketBaseValue;
     }
 }

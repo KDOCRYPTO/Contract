@@ -20,7 +20,7 @@ const tickets = {
   },
 };
 
-const baseTicketWeiValue = 60000;
+const baseTicketWeiValue = 1200000000000000;
 
 contract('KDOTicket', (accounts) => {
   beforeEach(async () => {
@@ -49,15 +49,15 @@ contract('KDOTicket', (accounts) => {
   });
 
   it('ticket: should get the correct price for bronze', () => {
-    assert.strictEqual(297000000000060000, tickets.bronze.value);
+    assert.strictEqual(297000000000000000 + baseTicketWeiValue, tickets.bronze.value);
   });
 
   it('ticket: should get the correct price for silver', () => {
-    assert.strictEqual(447000000000060000, tickets.silver.value);
+    assert.strictEqual(447000000000000000 + baseTicketWeiValue, tickets.silver.value);
   });
 
   it('ticket: should get the correct price for gold', () => {
-    assert.strictEqual(747000000000060000, tickets.gold.value);
+    assert.strictEqual(747000000000000000 + baseTicketWeiValue, tickets.gold.value);
   });
 
   it('ticket: should not be able to allocate new ticket if not enough value', () => {
@@ -151,24 +151,6 @@ contract('KDOTicket', (accounts) => {
     expectThrow(HST.allocateNewTicket(accounts[1], tickets.silver, { from: accounts[1], value: baseTicketWeiValue }));
   });
 
-  it('ticket: should transfer value to contract owner when credit with value', async () => {
-    const ticket = accounts[1];
-    const ticketKey = 'silver';
-    await HST.allocateNewTicket(ticket, tickets[ticketKey].amount, { from: contractOwner, value: tickets[ticketKey].value });
-
-    const consumer = accounts[2];
-
-    const value = 10000;
-
-    const balanceOfContractOwnerBeforeConsume = await web3.eth.getBalance(contractOwner);
-
-    await HST.creditConsumer(consumer, { from: ticket, value });
-
-    const balanceOfContractOwnerAfterConsume = await web3.eth.getBalance(contractOwner);
-
-    assert.strictEqual(balanceOfContractOwnerAfterConsume.toNumber(), balanceOfContractOwnerBeforeConsume.toNumber() + value);
-  });
-
   it('ticket events: should fire Consume when a ticket has been consumed', async () => {
     const ticket = accounts[1];
     const ticketKey = 'silver';
@@ -183,6 +165,12 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(creditLog.args.ticket, ticket);
     assert.strictEqual(creditLog.args.consumer, consumer);
     assert.strictEqual(creditLog.args.tType, ticketKey);
+  });
+
+  it('ticket gas value: should update ticket gas value', async () => {
+    await HST.updateTicketBaseValue(1, { from: contractOwner });
+    const ticketBaseValue = await HST.ticketBaseValue.call();
+    assert.strictEqual(ticketBaseValue.toNumber(), 1);
   });
 
   it('consumer: should destroy consumer balance when debiting', async () => {
