@@ -83,11 +83,6 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         return false;
     }
 
-    // Get ticket expiration date
-    function ticketExpiration(address _ticket) public view returns (uint256 expiration) {
-        return activeTickets[_ticket].expireAt;
-    }
-
     // A ticket credit the consumer balance. Sets its balance to 0 and adds the value to the consumer balance
     // It triggers Consume event for logs
     function creditConsumer(address _consumer)
