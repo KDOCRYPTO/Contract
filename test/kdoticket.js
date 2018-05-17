@@ -191,7 +191,7 @@ contract('KDOTicket', (accounts) => {
 
     assert.strictEqual(totalSupplyBeforeDebit.toNumber(), tickets[ticketKey].amount);
 
-    await HST.debit({ from: consumer });
+    await HST.debit(tickets[ticketKey].amount, { from: consumer });
 
     const balanceAfterDebit = await HST.balanceOfConsumer.call(consumer);
 
@@ -202,10 +202,14 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(circulatingSupplyAfterDebit.toNumber(), 0); // Debit detroys coins
   });
 
+  it('consumer: should not be able to debit more than the balance', () => {
+    expectThrow(HST.debit(1000));
+  });
+
   it('consumer event: should fire Debit event when a consumer has been debitted', async () => {
     const consumer = accounts[3];
 
-    const res = await HST.debit({ from: consumer });
+    const res = await HST.debit(0, { from: consumer });
 
     const debitLog = res.logs.find(element => element.event.match('DebitEvt'));
 

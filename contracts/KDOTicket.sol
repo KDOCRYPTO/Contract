@@ -21,6 +21,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
+    uint256 constant public minTicketBaseValue = 1200000000000000;
     uint256 public ticketBaseValue;
 
     function KDOTicket() public {
@@ -37,8 +38,9 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         _;
     }
 
-    function updateTicketBaseValue(uint256 _value) public {
-      require(msg.sender == owner);
+    function updateTicketBaseValue(uint256 _value) public
+        onlyContractOwner()
+    {
       ticketBaseValue = _value;
     }
 
@@ -115,14 +117,15 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     // Detroy tokens from consumer balance.
     // It triggers Debit event
-    function debit() public {
-        uint256 _balance = consumersBalance[msg.sender];
+    function debit(uint256 _amount) public {
+        // Safe math and nobody can debit more than her balance
+        require(_amount <= consumersBalance[msg.sender] && _amount <= circulatingSupply);
 
-        circulatingSupply -= _balance;
+        circulatingSupply -= _amount;
 
-        consumersBalance[msg.sender] = 0;
+        consumersBalance[msg.sender] -= _amount;
 
-        DebitEvt(msg.sender, _balance, now);
+        DebitEvt(msg.sender, _amount, now);
     }
 
     // Returns the cost of a ticket regarding its amount
