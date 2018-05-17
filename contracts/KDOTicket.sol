@@ -21,7 +21,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
-    uint256 constant public minTicketBaseValue = 1200000000000000;
+    uint256 constant public MIN_TICKET_BASE_VALUE = 1200000000000000;
     uint256 public ticketBaseValue;
 
     function KDOTicket() public {
@@ -30,7 +30,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         ticketTypes[249] = "gold";
 
         // 120 Gwei
-        ticketBaseValue = 1200000000000000;
+        ticketBaseValue = MIN_TICKET_BASE_VALUE;
     }
 
     modifier onlyExistingTicket(uint256 _amount) {
@@ -41,7 +41,9 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     function updateTicketBaseValue(uint256 _value) public
         onlyContractOwner()
     {
-      ticketBaseValue = _value;
+        // Cant put a value below the minimal value
+        require(_value >= MIN_TICKET_BASE_VALUE);
+        ticketBaseValue = _value;
     }
 
     // Allocates a ticket to an address and create tokens (accordingly to the value of the allocated ticket)
@@ -79,7 +81,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         view
         returns (bool valid)
     {
-        if (activeTickets[_ticketAddr].balance > 0 && _ticketAddr.balance >= ticketBaseValue && now < activeTickets[_ticketAddr].expireAt) {
+        if (activeTickets[_ticketAddr].balance > 0 && _ticketAddr.balance >= MIN_TICKET_BASE_VALUE && now < activeTickets[_ticketAddr].expireAt) {
             return true;
         }
         return false;

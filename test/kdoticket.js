@@ -169,9 +169,17 @@ contract('KDOTicket', (accounts) => {
   });
 
   it('ticket gas value: should update ticket gas value', async () => {
-    await HST.updateTicketBaseValue(1, { from: contractOwner });
+    await HST.updateTicketBaseValue(baseTicketWeiValue + 1, { from: contractOwner });
     const ticketBaseValue = await HST.ticketBaseValue.call();
-    assert.strictEqual(ticketBaseValue.toNumber(), 1);
+    assert.strictEqual(ticketBaseValue.toNumber(), baseTicketWeiValue + 1);
+  });
+
+  it('ticket gas value: should fail when the sender is not the contract owner', () => {
+    expectThrow(HST.updateTicketBaseValue(baseTicketWeiValue + 1, { from: accounts[5] }));
+  });
+
+  it('ticket gas value: should fail when the new value is less than the minimal acceptable value (1200000000000000)', () => {
+    expectThrow(HST.updateTicketBaseValue(baseTicketWeiValue - 1, { from: contractOwner }));
   });
 
   it('consumer: should destroy consumer balance when debiting', async () => {
