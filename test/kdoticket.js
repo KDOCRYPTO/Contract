@@ -21,6 +21,7 @@ const tickets = {
 };
 
 const baseTicketWeiValue = 1200000000000000;
+const zeroBalanceAddress = '0x59141cA21c745CB67B51c51Ae1F5Ec11AdbDC064';
 
 contract('KDOTicket', (accounts) => {
   beforeEach(async () => {
@@ -81,13 +82,13 @@ contract('KDOTicket', (accounts) => {
 
     const ownerBalanceAfterAllocating = web3.eth.getBalance(contractOwner);
 
-    assert.strictEqual(ownerBalanceAfterAllocating.toNumber(), ownerBalanceBeforeAllocating.toNumber() + (tickets[ticketKey].value - 60000));
+    assert.strictEqual(ownerBalanceAfterAllocating.toNumber(), ownerBalanceBeforeAllocating.toNumber() + (tickets[ticketKey].value - baseTicketWeiValue));
   });
 
   it('ticket: should be valid after creation', async () => {
-    await HST.allocateNewTicket(accounts[1], tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+    await HST.allocateNewTicket(zeroBalanceAddress, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
 
-    const isValid = await HST.isTicketValid.call(accounts[1]);
+    const isValid = await HST.isTicketValid.call(zeroBalanceAddress);
 
     assert.isTrue(isValid);
   });
