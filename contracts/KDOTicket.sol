@@ -15,7 +15,6 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     mapping (address => Ticket) public activeTickets;
     // A consumer is a person who can consume ticketTypes and be credited for
     mapping (address => uint256) public consumersBalance;
-    mapping (address => bool) public allowedConsumers;
 
     event CreditEvt(address ticket, address consumer, string tType, uint256 date);
     event DebitEvt(address consumer, uint256 amount, uint256 date);
