@@ -81,7 +81,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         view
         returns (bool valid)
     {
-        if (activeTickets[_ticketAddr].balance > 0 && _ticketAddr.balance >= MIN_TICKET_BASE_VALUE && now < activeTickets[_ticketAddr].expireAt) {
+        if (activeTickets[_ticketAddr].balance > 0 && now < activeTickets[_ticketAddr].expireAt) {
             return true;
         }
         return false;
