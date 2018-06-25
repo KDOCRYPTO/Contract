@@ -15,7 +15,7 @@ const tickets = {
     value: 0,
   },
   gold: {
-    amount: 249,
+    amount: 349,
     value: 0,
   },
 };
@@ -27,6 +27,10 @@ contract('KDOTicket', (accounts) => {
   beforeEach(async () => {
     contractOwner = accounts[0];
     HST = await KDOTicket.new({ from: contractOwner });
+
+    await HST.addTicketType(tickets.bronze.amount, Object.keys(tickets)[0]);
+    await HST.addTicketType(tickets.silver.amount, Object.keys(tickets)[1]);
+    await HST.addTicketType(tickets.gold.amount, Object.keys(tickets)[2]);
 
     const bronzeValue = await HST.costOfTicket(tickets.bronze.amount);
     tickets.bronze.value = bronzeValue.toNumber();
@@ -47,18 +51,6 @@ contract('KDOTicket', (accounts) => {
 
     const symbol = await HST.symbol.call();
     assert.strictEqual(symbol, 'KDO');
-  });
-
-  it('ticket: should get the correct price for bronze', () => {
-    assert.strictEqual(297000000000000000 + baseTicketWeiValue, tickets.bronze.value);
-  });
-
-  it('ticket: should get the correct price for silver', () => {
-    assert.strictEqual(447000000000000000 + baseTicketWeiValue, tickets.silver.value);
-  });
-
-  it('ticket: should get the correct price for gold', () => {
-    assert.strictEqual(747000000000000000 + baseTicketWeiValue, tickets.gold.value);
   });
 
   it('ticket: should not be able to allocate new ticket if not enough value', () => {
@@ -152,6 +144,23 @@ contract('KDOTicket', (accounts) => {
     expectThrow(HST.allocateNewTicket(accounts[1], tickets.silver, { from: accounts[1], value: baseTicketWeiValue }));
   });
 
+  it('ticket: should be able to publish a review', async () => {
+    const ticket = accounts[1];
+    const consumer = accounts[2];
+    await HST.allocateNewTicket(ticket, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+
+    await HST.creditConsumer(consumer, { from: ticket });
+
+    await HST.publishReview(0, { from: ticket });
+  });
+
+  it('ticket: should not be able to vote for consumer if not consumed', async () => {
+    const ticket = accounts[1];
+    await HST.allocateNewTicket(ticket, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+
+    expectThrow(HST.publishReview(5, { from: ticket }));
+  });
+
   it('ticket events: should fire Consume when a ticket has been consumed', async () => {
     const ticket = accounts[1];
     const ticketKey = 'silver';
@@ -212,6 +221,50 @@ contract('KDOTicket', (accounts) => {
 
   it('consumer: should not be able to debit more than the balance', () => {
     expectThrow(HST.debit(1000));
+  });
+
+  it('consumer: should have a correct median when receiving reviews', async () => {
+    const ticket1 = accounts[1];
+    const ticket2 = accounts[2];
+    const ticket3 = accounts[3];
+    const consumer = accounts[4];
+
+    await HST.allocateNewTicket(ticket1, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+    await HST.allocateNewTicket(ticket2, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+    await HST.allocateNewTicket(ticket3, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+
+    await HST.creditConsumer(consumer, { from: ticket1 });
+    await HST.creditConsumer(consumer, { from: ticket2 });
+    await HST.creditConsumer(consumer, { from: ticket3 });
+
+    // Review of 0 means -1 (its a penalty)
+    await HST.publishReview(0, { from: ticket1 });
+
+    await HST.publishReview(3, { from: ticket2 });
+    await HST.publishReview(5, { from: ticket3 });
+
+    const median = await HST.reviewMedianOfConsumer(consumer);
+
+    const expectedMedian = ((3 + 5) - 1) / 3;
+
+    assert.strictEqual(median.toNumber(), Math.trunc(expectedMedian * 100));
+  });
+
+  it('consumer: should have a median of 0 when it only has reviews of 0', async () => {
+    const ticket = accounts[1];
+    const consumer = accounts[2];
+
+    await HST.allocateNewTicket(ticket, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+
+    await HST.creditConsumer(consumer, { from: ticket });
+
+    await HST.publishReview(0, { from: ticket });
+
+    const median = await HST.reviewMedianOfConsumer(consumer);
+
+    const expectedMedian = 0;
+
+    assert.strictEqual(median.toNumber(), expectedMedian);
   });
 
   it('consumer event: should fire Debit event when a consumer has been debitted', async () => {
