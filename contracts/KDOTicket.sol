@@ -29,9 +29,9 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
-    // 200000 Gwei
-    uint256 constant public MIN_TICKET_BASE_VALUE = 200000000000000;
-    
+    // 150000 Gwei
+    uint256 constant public MIN_TICKET_BASE_VALUE = 150000000000000;
+
     uint256 public ticketBaseValue;
 
     constructor() public {

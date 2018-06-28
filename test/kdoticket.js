@@ -20,7 +20,7 @@ const tickets = {
   },
 };
 
-const baseTicketWeiValue = 200000000000000;
+const baseTicketWeiValue = 150000000000000;
 const zeroBalanceAddress = '0x59141cA21c745CB67B51c51Ae1F5Ec11AdbDC064';
 
 contract('KDOTicket', (accounts) => {
