@@ -1,10 +1,9 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.4;
 
 import "./token/Token.sol";
 
 
 contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
-
     struct Ticket {
         uint256 balance;
         string tType;
@@ -18,7 +17,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         uint256 balance;
         mapping (uint => uint) reviews;
 
-        uint256 cumulatedBalance;
+        uint256 debittedBalance;
     }
 
     mapping (address => Ticket) public activeTickets;
@@ -30,11 +29,12 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     mapping (uint256 => string) public ticketTypes;
 
-    uint256 constant public MIN_TICKET_BASE_VALUE = 1200000000000000;
+    // 200000 Gwei
+    uint256 constant public MIN_TICKET_BASE_VALUE = 200000000000000;
+    
     uint256 public ticketBaseValue;
 
-    function KDOTicket() public {
-        // 120 Gwei
+    constructor() public {
         ticketBaseValue = MIN_TICKET_BASE_VALUE;
     }
 
@@ -81,7 +81,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
             balance: _amount,
             tType: ticketTypes[_amount],
             createdAt: now,
-            expireAt: now + 2 years,
+            expireAt: now + 2 * 365 days,
             consumer: 0x0,
             hasReviewed: false
         });
@@ -126,7 +126,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
         activeTickets[msg.sender].consumer = _consumer;
 
-        CreditEvt(msg.sender, _consumer, activeTickets[msg.sender].tType, now);
+        emit CreditEvt(msg.sender, _consumer, activeTickets[msg.sender].tType, now);
 
         return true;
     }
@@ -171,12 +171,12 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     }
 
     // Returns the consumer info
-    function infoOfConsumer(address _address) public view returns(uint256 balance, uint256 cumulatedBalance, uint256 nbReviews, uint256 medianReview) {
+    function infoOfConsumer(address _address) public view returns(uint256 balance, uint256 debittedBalance, uint256 nbReviews, uint256 medianReview) {
         for (uint i = 0; i <= 5; i++) {
             nbReviews += consumers[_address].reviews[i];
         }
 
-        return (consumers[_address].balance, consumers[_address].cumulatedBalance, nbReviews, reviewMedianOfConsumer(_address));
+        return (consumers[_address].balance, consumers[_address].debittedBalance, nbReviews, reviewMedianOfConsumer(_address));
     }
 
     // Returns the balance of a consumer
@@ -192,10 +192,10 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
         circulatingSupply -= _amount;
 
-        consumers[msg.sender].cumulatedBalance += consumers[msg.sender].balance;
+        consumers[msg.sender].debittedBalance += consumers[msg.sender].balance;
         consumers[msg.sender].balance -= _amount;
 
-        DebitEvt(msg.sender, _amount, now);
+        emit DebitEvt(msg.sender, _amount, now);
     }
 
     // Returns the cost of a ticket regarding its amount

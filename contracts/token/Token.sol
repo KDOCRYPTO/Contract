@@ -1,9 +1,4 @@
-/*
-Implements EIP20 token standard: https://github.com/ethereum/EIPs/issues/20
-.*/
-
-
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.4;
 
 
 contract Token {
@@ -23,12 +18,7 @@ contract Token {
     uint8 public decimals;                //How many decimals to show.
     string public symbol;                 //An identifier: eg SBX
 
-    function Token(
-        uint256 _initialAmount,
-        string _tokenName,
-        uint8 _decimalUnits,
-        string _tokenSymbol
-    ) public {
+    constructor(uint256 _initialAmount, string _tokenName, uint8 _decimalUnits, string _tokenSymbol) public {
         totalSupply = _initialAmount;
         circulatingSupply = _initialAmount;
         name = _tokenName;                                   // Set the name for display purposes

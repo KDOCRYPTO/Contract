@@ -1,13 +1,12 @@
 import "../KDOTicket.sol";
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.4;
 
 
 contract Factory {
-
     mapping(address => address[]) public created;
 
-    function Factory() public {
+    constructor() public {
         createContract();
     }
 

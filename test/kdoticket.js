@@ -20,7 +20,7 @@ const tickets = {
   },
 };
 
-const baseTicketWeiValue = 1200000000000000;
+const baseTicketWeiValue = 200000000000000;
 const zeroBalanceAddress = '0x59141cA21c745CB67B51c51Ae1F5Ec11AdbDC064';
 
 contract('KDOTicket', (accounts) => {
@@ -98,7 +98,7 @@ contract('KDOTicket', (accounts) => {
 
     const balanceAfterAllocation = await web3.eth.getBalance(ticket);
 
-    assert.equal(balanceAfterAllocation.toNumber(), baseTicketWeiValue + balanceBeforeAllocation.toNumber());
+    assert.strictEqual(balanceAfterAllocation.toNumber(), baseTicketWeiValue + balanceBeforeAllocation.toNumber());
   });
 
   it('ticket: should not be valid when no value', async () => {
@@ -140,7 +140,7 @@ contract('KDOTicket', (accounts) => {
     assert.isFalse(isTicketValid);
   });
 
-  it('ticket: should not be able to create tickets', () => {
+  it('ticket: should not be able to create tickets when not good value', () => {
     expectThrow(HST.allocateNewTicket(accounts[1], tickets.silver, { from: accounts[1], value: baseTicketWeiValue }));
   });
 
