@@ -25,7 +25,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     mapping (address => Consumer) public consumers;
 
     event CreditEvt(address ticket, address consumer, string tType, uint256 date);
-    event DebitEvt(address consumer, uint256 amount, uint256 date);
+    event DebitEvt(address consumer, uint256 amount, uint reviewAvg, uint256 date);
 
     mapping (uint256 => string) public ticketTypes;
 
@@ -146,17 +146,21 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         activeTickets[msg.sender].hasReviewed = true;
     }
 
-    function reviewMedianOfConsumer(address _address) public view returns (uint median) {
+    function reviewAverageOfConsumer(address _address) public view returns (uint avg) {
         // Apply a penalty of -1 for reviews = 0
         int totReviews = int(consumers[_address].reviews[0]) * -1;
         uint nbReviews = consumers[_address].reviews[0];
+
+        if (nbReviews == 0) {
+            return 3;
+        }
 
         for (uint i = 1; i <= 5; i++) {
             totReviews += int(consumers[_address].reviews[i] * i);
             nbReviews += consumers[_address].reviews[i];
         }
 
-        // Too much penalties leads to 0, then force it to be 0, the median
+        // Too much penalties leads to 0, then force it to be 0, the average
         // can't be negative
         if (totReviews < 0) {
             totReviews = 0;
@@ -171,12 +175,12 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     }
 
     // Returns the consumer info
-    function infoOfConsumer(address _address) public view returns(uint256 balance, uint256 debittedBalance, uint256 nbReviews, uint256 medianReview) {
+    function infoOfConsumer(address _address) public view returns(uint256 balance, uint256 debittedBalance, uint256 nbReviews, uint256 avg) {
         for (uint i = 0; i <= 5; i++) {
             nbReviews += consumers[_address].reviews[i];
         }
 
-        return (consumers[_address].balance, consumers[_address].debittedBalance, nbReviews, reviewMedianOfConsumer(_address));
+        return (consumers[_address].balance, consumers[_address].debittedBalance, nbReviews, reviewAverageOfConsumer(_address));
     }
 
     // Returns the balance of a consumer
@@ -195,7 +199,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         consumers[msg.sender].debittedBalance += consumers[msg.sender].balance;
         consumers[msg.sender].balance -= _amount;
 
-        emit DebitEvt(msg.sender, _amount, now);
+        emit DebitEvt(msg.sender, _amount, reviewAverageOfConsumer(msg.sender), now);
     }
 
     // Returns the cost of a ticket regarding its amount

@@ -223,7 +223,7 @@ contract('KDOTicket', (accounts) => {
     expectThrow(HST.debit(1000));
   });
 
-  it('consumer: should have a correct median when receiving reviews', async () => {
+  it('consumer: should have a correct average when receiving reviews', async () => {
     const ticket1 = accounts[1];
     const ticket2 = accounts[2];
     const ticket3 = accounts[3];
@@ -243,14 +243,14 @@ contract('KDOTicket', (accounts) => {
     await HST.publishReview(3, { from: ticket2 });
     await HST.publishReview(5, { from: ticket3 });
 
-    const median = await HST.reviewMedianOfConsumer(consumer);
+    const avg = await HST.reviewAverageOfConsumer(consumer);
 
-    const expectedMedian = ((3 + 5) - 1) / 3;
+    const expectedAvg = ((3 + 5) - 1) / 3;
 
-    assert.strictEqual(median.toNumber(), Math.trunc(expectedMedian * 100));
+    assert.strictEqual(avg.toNumber(), Math.trunc(expectedAvg * 100));
   });
 
-  it('consumer: should have a median of 0 when it only has reviews of 0', async () => {
+  it('consumer: should have a avg of 0 when it only has reviews of 0', async () => {
     const ticket = accounts[1];
     const consumer = accounts[2];
 
@@ -260,11 +260,11 @@ contract('KDOTicket', (accounts) => {
 
     await HST.publishReview(0, { from: ticket });
 
-    const median = await HST.reviewMedianOfConsumer(consumer);
+    const avg = await HST.reviewAverageOfConsumer(consumer);
 
-    const expectedMedian = 0;
+    const expectedAverage = 0;
 
-    assert.strictEqual(median.toNumber(), expectedMedian);
+    assert.strictEqual(avg.toNumber(), expectedAverage);
   });
 
   it('consumer event: should fire Debit event when a consumer has been debitted', async () => {
