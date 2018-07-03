@@ -4,6 +4,7 @@ const KDOTicket = artifacts.require('KDOTicket');
 
 let HST;
 let contractOwner;
+let businessOwner;
 
 const tickets = {
   bronze: {
@@ -28,7 +29,8 @@ const commissions = [1, 2, 3, 4, 5];
 contract('KDOTicket', (accounts) => {
   beforeEach(async () => {
     contractOwner = accounts[0];
-    HST = await KDOTicket.new(commissions, { from: contractOwner });
+    businessOwner = accounts[1];
+    HST = await KDOTicket.new(commissions, businessOwner, { from: contractOwner });
 
     await HST.addTicketType(tickets.bronze.amount, Object.keys(tickets)[0]);
     await HST.addTicketType(tickets.silver.amount, Object.keys(tickets)[1]);
@@ -66,17 +68,17 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(ticket[0].toNumber(), tickets.bronze.amount);
   });
 
-  it('ticket: should transfer ether value to contract owner when allocating', async () => {
+  it('ticket: should transfer ether value to business owner when allocating', async () => {
     const ticketKey = 'bronze';
 
-    const ownerBalanceBeforeAllocating = web3.eth.getBalance(contractOwner);
+    const businessOwnerBeforeAllocating = web3.eth.getBalance(businessOwner);
     const value = tickets[ticketKey].value;
 
     await HST.allocateNewTicket(accounts[3], tickets[ticketKey].amount, { from: accounts[2], value });
 
-    const ownerBalanceAfterAllocating = web3.eth.getBalance(contractOwner);
+    const businessOwnerAfterAllocating = web3.eth.getBalance(businessOwner);
 
-    assert.strictEqual(ownerBalanceAfterAllocating.toNumber(), ownerBalanceBeforeAllocating.toNumber() + (tickets[ticketKey].value - baseTicketWeiValue));
+    assert.strictEqual(businessOwnerAfterAllocating.toNumber(), businessOwnerBeforeAllocating.toNumber() + (tickets[ticketKey].value - baseTicketWeiValue));
   });
 
   it('ticket: should be valid after creation', async () => {
@@ -164,7 +166,7 @@ contract('KDOTicket', (accounts) => {
   });
 
   it('ticket: should return the type "bronze" when ticket amount is 99', async () => {
-    const ticketType = await HST.ticketType(tickets.bronze.amount);
+    const ticketType = await HST.ticketTypes(tickets.bronze.amount);
 
     assert.strictEqual(ticketType, 'bronze');
   });
@@ -331,7 +333,7 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(com6.toNumber(), commissions[4]);
   });
 
-  it('commissions: should return the expected commissions of 2 when consumer is rated 1.5', async () => {
+  it('commissions: should return the expected commissions of 2 when contractor is rated 1.5', async () => {
     const ticket = accounts[1];
     const contractor = accounts[2];
 

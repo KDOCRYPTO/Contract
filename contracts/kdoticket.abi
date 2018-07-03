@@ -154,7 +154,7 @@
 		"constant": false,
 		"inputs": [
 			{
-				"name": "_consumer",
+				"name": "_contractor",
 				"type": "address"
 			}
 		],
@@ -252,25 +252,6 @@
 		"outputs": [],
 		"payable": false,
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_amount",
-				"type": "uint256"
-			}
-		],
-		"name": "ticketType",
-		"outputs": [
-			{
-				"name": "_type",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -443,6 +424,10 @@
 				"type": "uint256"
 			},
 			{
+				"name": "nbCredittedTickets",
+				"type": "uint256"
+			},
+			{
 				"name": "debittedBalance",
 				"type": "uint256"
 			}
@@ -504,6 +489,10 @@
 			},
 			{
 				"name": "nbReviews",
+				"type": "uint256"
+			},
+			{
+				"name": "nbCredittedTickets",
 				"type": "uint256"
 			},
 			{

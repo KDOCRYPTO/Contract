@@ -22,6 +22,8 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         uint256 debittedBalance;
     }
 
+    address public businessOwner;
+
     // Commission regarding the review average, the index is about the rating value
     // the value is the commission in %
     uint8[5] public commissions;
@@ -41,9 +43,10 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     uint256 public ticketBaseValue;
 
-    constructor(uint8[5] _commissions) public {
+    constructor(uint8[5] _commissions, address _businessOwner) public {
         ticketBaseValue = MIN_TICKET_BASE_VALUE;
         commissions = _commissions;
+        businessOwner = _businessOwner;
     }
 
     // Only listed tickets
@@ -105,8 +108,8 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         // Give minimal WEI value to a ticket
         _to.transfer(ticketBaseValue);
 
-        // Price of the ticket
-        owner.transfer(costInWei - ticketBaseValue);
+        // Price of the ticket transfered to the business owner address
+        businessOwner.transfer(costInWei - ticketBaseValue);
 
         totalSupply += _amount;
         circulatingSupply += _amount;
