@@ -398,6 +398,20 @@
 	{
 		"constant": true,
 		"inputs": [],
+		"name": "businessOwner",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
 		"name": "getTotalSupply",
 		"outputs": [
 			{
@@ -542,6 +556,10 @@
 			{
 				"name": "_commissions",
 				"type": "uint8[5]"
+			},
+			{
+				"name": "_businessOwner",
+				"type": "address"
 			}
 		],
 		"payable": false,
