@@ -17,6 +17,8 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         uint256 balance;
         mapping (uint => uint) reviews;
 
+        uint256 nbCredittedTickets;
+
         uint256 debittedBalance;
     }
 
@@ -126,7 +128,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     // A ticket credit the contractor balance. Sets its balance to 0 and adds the value to the contractor balance
     // It triggers Consume event for logs
-    function creditContractor(address _consumer)
+    function creditContractor(address _contractor)
         public
         returns (bool success)
     {
@@ -136,11 +138,13 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
         activeTickets[msg.sender].balance = 0;
 
-        contractors[_consumer].balance += value;
+        contractors[_contractor].balance += value;
 
-        activeTickets[msg.sender].contractor = _consumer;
+        contractors[_contractor].nbCredittedTickets += 1;
 
-        emit CreditEvt(msg.sender, _consumer, activeTickets[msg.sender].tType, now);
+        activeTickets[msg.sender].contractor = _contractor;
+
+        emit CreditEvt(msg.sender, _contractor, activeTickets[msg.sender].tType, now);
 
         return true;
     }
@@ -160,12 +164,17 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         activeTickets[msg.sender].hasReviewed = true;
     }
 
+    // Calculate the average rating of a contractor
     function reviewAverageOfContractor(address _address) public view returns (uint avg) {
+        // Percentage threshold
+        uint decreaseThreshold = 60;
+
         // Apply a penalty of -1 for reviews = 0
         int totReviews = int(contractors[_address].reviews[0]) * -1;
 
         uint nbReviews = contractors[_address].reviews[0];
 
+        // TODO consider the number of reviews
 
         for (uint i = 1; i <= 5; i++) {
             totReviews += int(contractors[_address].reviews[i] * i);
@@ -173,7 +182,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         }
 
         if (nbReviews == 0) {
-            return 300;
+            return 250;
         }
 
         // Too much penalties leads to 0, then force it to be 0, the average
@@ -182,7 +191,24 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
             totReviews = 0;
         }
 
-        return (uint(totReviews) * 100) / nbReviews;
+        uint percReviewsTickets = (nbReviews * 100 / contractors[_address].nbCredittedTickets);
+
+        avg = (uint(totReviews) * 100) / nbReviews;
+
+        if (percReviewsTickets >= decreaseThreshold) {
+            return avg;
+        }
+
+        // A rate < 60% on the number of reviews will decrease the rating average of
+        // the difference between the threshold and the % of reviews
+        // for instance a percent reviews of 50% will decrease the rating average
+        // of 10% (60% - 50%)
+        // This is to avoid abuse of the system, without this mecanism a contractor
+        // could stay with a average of 500 (the max) regardless of the number
+        // of ticket he used.
+        uint decreasePercent = decreaseThreshold - percReviewsTickets;
+
+        return avg - (avg / decreasePercent);
     }
 
     // Returns the commission for the contractor
@@ -201,12 +227,12 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
     }
 
     // Returns the contractor info
-    function infoOfContractor(address _address) public view returns(uint256 balance, uint256 debittedBalance, uint256 nbReviews, uint256 avg) {
+    function infoOfContractor(address _address) public view returns(uint256 balance, uint256 debittedBalance, uint256 nbReviews, uint256 nbCredittedTickets, uint256 avg) {
         for (uint i = 0; i <= 5; i++) {
             nbReviews += contractors[_address].reviews[i];
         }
 
-        return (contractors[_address].balance, contractors[_address].debittedBalance, nbReviews, reviewAverageOfContractor(_address));
+        return (contractors[_address].balance, contractors[_address].debittedBalance, nbReviews, contractors[_address].nbCredittedTickets, reviewAverageOfContractor(_address));
     }
 
     // Returns the balance of a contractor

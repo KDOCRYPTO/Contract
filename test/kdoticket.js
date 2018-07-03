@@ -275,6 +275,26 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(avg.toNumber(), expectedAverage);
   });
 
+  it('contractor: should have an avg of 4.5 (450) when 1 review of 5 and 1 missing review (that means 50% of review)', async () => {
+    const ticket = accounts[1];
+    const contractor = accounts[2];
+
+    await HST.allocateNewTicket(ticket, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+    await HST.creditContractor(contractor, { from: ticket });
+
+    // First review
+    await HST.publishReview(5, { from: ticket });
+
+    await HST.allocateNewTicket(ticket, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+    await HST.creditContractor(contractor, { from: ticket });
+
+    // No review for this ticket
+
+    const avgReview = await HST.reviewAverageOfContractor(contractor);
+
+    assert.strictEqual(avgReview.toNumber(), 450);
+  });
+
   it('contractor event: should fire Debit event when a contractor has been debitted', async () => {
     const contractor = accounts[3];
 

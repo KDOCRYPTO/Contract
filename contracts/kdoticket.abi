@@ -15,29 +15,6 @@
 	},
 	{
 		"constant": true,
-		"inputs": [
-			{
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "consumers",
-		"outputs": [
-			{
-				"name": "balance",
-				"type": "uint256"
-			},
-			{
-				"name": "debittedBalance",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
 		"inputs": [],
 		"name": "totalSupply",
 		"outputs": [
@@ -66,12 +43,88 @@
 	},
 	{
 		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "commissions",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "commissionForContractor",
+		"outputs": [
+			{
+				"name": "c",
+				"type": "uint8"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
 		"inputs": [],
 		"name": "decimals",
 		"outputs": [
 			{
 				"name": "",
 				"type": "uint8"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "_avg",
+				"type": "uint256"
+			}
+		],
+		"name": "commissionForReviewAverageOf",
+		"outputs": [
+			{
+				"name": "c",
+				"type": "uint8"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "reviewAverageOfContractor",
+		"outputs": [
+			{
+				"name": "avg",
+				"type": "uint256"
 			}
 		],
 		"payable": false,
@@ -98,34 +151,22 @@
 		"type": "function"
 	},
 	{
-		"constant": true,
+		"constant": false,
 		"inputs": [
 			{
-				"name": "_address",
+				"name": "_consumer",
 				"type": "address"
 			}
 		],
-		"name": "infoOfConsumer",
+		"name": "creditContractor",
 		"outputs": [
 			{
-				"name": "balance",
-				"type": "uint256"
-			},
-			{
-				"name": "debittedBalance",
-				"type": "uint256"
-			},
-			{
-				"name": "nbReviews",
-				"type": "uint256"
-			},
-			{
-				"name": "avg",
-				"type": "uint256"
+				"name": "success",
+				"type": "bool"
 			}
 		],
 		"payable": false,
-		"stateMutability": "view",
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -146,17 +187,12 @@
 		"constant": false,
 		"inputs": [
 			{
-				"name": "_consumer",
-				"type": "address"
+				"name": "_c",
+				"type": "uint8[5]"
 			}
 		],
-		"name": "creditConsumer",
-		"outputs": [
-			{
-				"name": "success",
-				"type": "bool"
-			}
-		],
+		"name": "updateCommissions",
+		"outputs": [],
 		"payable": false,
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -192,7 +228,7 @@
 				"type": "uint256"
 			},
 			{
-				"name": "consumer",
+				"name": "contractor",
 				"type": "address"
 			},
 			{
@@ -222,6 +258,25 @@
 		"constant": true,
 		"inputs": [
 			{
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
+		"name": "ticketType",
+		"outputs": [
+			{
+				"name": "_type",
+				"type": "string"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
 				"name": "",
 				"type": "address"
 			}
@@ -245,7 +300,7 @@
 				"type": "uint256"
 			},
 			{
-				"name": "consumer",
+				"name": "contractor",
 				"type": "address"
 			},
 			{
@@ -279,10 +334,10 @@
 				"type": "address"
 			}
 		],
-		"name": "reviewAverageOfConsumer",
+		"name": "balanceOfContractor",
 		"outputs": [
 			{
-				"name": "avg",
+				"name": "balance",
 				"type": "uint256"
 			}
 		],
@@ -312,25 +367,6 @@
 			{
 				"name": "",
 				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "_address",
-				"type": "address"
-			}
-		],
-		"name": "balanceOfConsumer",
-		"outputs": [
-			{
-				"name": "balance",
-				"type": "uint256"
 			}
 		],
 		"payable": false,
@@ -393,6 +429,29 @@
 		"type": "function"
 	},
 	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "contractors",
+		"outputs": [
+			{
+				"name": "balance",
+				"type": "uint256"
+			},
+			{
+				"name": "debittedBalance",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"constant": false,
 		"inputs": [
 			{
@@ -419,6 +478,37 @@
 			{
 				"name": "",
 				"type": "string"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "infoOfContractor",
+		"outputs": [
+			{
+				"name": "balance",
+				"type": "uint256"
+			},
+			{
+				"name": "debittedBalance",
+				"type": "uint256"
+			},
+			{
+				"name": "nbReviews",
+				"type": "uint256"
+			},
+			{
+				"name": "avg",
+				"type": "uint256"
 			}
 		],
 		"payable": false,
@@ -459,7 +549,12 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
+		"inputs": [
+			{
+				"name": "_commissions",
+				"type": "uint8[5]"
+			}
+		],
 		"payable": false,
 		"stateMutability": "nonpayable",
 		"type": "constructor"
@@ -474,7 +569,7 @@
 			},
 			{
 				"indexed": false,
-				"name": "consumer",
+				"name": "contractor",
 				"type": "address"
 			},
 			{
@@ -496,7 +591,7 @@
 		"inputs": [
 			{
 				"indexed": false,
-				"name": "consumer",
+				"name": "contractor",
 				"type": "address"
 			},
 			{
@@ -506,7 +601,7 @@
 			},
 			{
 				"indexed": false,
-				"name": "reviewAvg",
+				"name": "commission",
 				"type": "uint256"
 			},
 			{
@@ -516,6 +611,23 @@
 			}
 		],
 		"name": "DebitEvt",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "commissions",
+				"type": "uint8[5]"
+			},
+			{
+				"indexed": false,
+				"name": "date",
+				"type": "uint256"
+			}
+		],
+		"name": "CommissionsChangeEvt",
 		"type": "event"
 	}
 ]
