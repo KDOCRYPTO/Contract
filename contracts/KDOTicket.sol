@@ -221,11 +221,6 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         return (activeTickets[_address].balance, activeTickets[_address].tType, isTicketValid(_address), activeTickets[_address].createdAt, activeTickets[_address].expireAt, activeTickets[_address].contractor, activeTickets[_address].hasReviewed);
     }
 
-    // Returns the type of a ticket regarding its amount
-    function ticketType(uint256 _amount) public view returns (string _type) {
-        return ticketTypes[_amount];
-    }
-
     // Returns the contractor info
     function infoOfContractor(address _address) public view returns(uint256 balance, uint256 debittedBalance, uint256 nbReviews, uint256 nbCredittedTickets, uint256 avg) {
         for (uint i = 0; i <= 5; i++) {
