@@ -3,7 +3,7 @@ pragma solidity ^0.4.4;
 import "./token/Token.sol";
 
 
-contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
+contract KDOTicket is Token(0, "KDO Coin", 0, "KDO") {
     struct Ticket {
         uint256 balance;
         string tType;
@@ -34,6 +34,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
 
     event CreditEvt(address ticket, address contractor, string tType, uint256 date);
     event DebitEvt(address contractor, uint256 amount, uint256 commission, uint256 date);
+    event ReviewEvt(address reviewer, address contractor, uint rate, uint256 date);
     event CommissionsChangeEvt(uint8[5] commissions, uint256 date);
 
     mapping (uint256 => string) public ticketTypes;
@@ -123,7 +124,7 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         view
         returns (bool valid)
     {
-        if (activeTickets[_ticketAddr].balance > 0 && now < activeTickets[_ticketAddr].expireAt) {
+        if (activeTickets[_ticketAddr].contractor == 0x0 && now < activeTickets[_ticketAddr].expireAt) {
             return true;
         }
         return false;
@@ -165,6 +166,8 @@ contract KDOTicket is Token(0, "KDO coin", 0, "KDO") {
         contractors[activeTickets[msg.sender].contractor].reviews[_reviewRate] += 1;
 
         activeTickets[msg.sender].hasReviewed = true;
+
+        emit ReviewEvt(msg.sender, activeTickets[msg.sender].contractor, _reviewRate, now);
     }
 
     // Calculate the average rating of a contractor

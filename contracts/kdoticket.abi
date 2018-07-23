@@ -625,6 +625,33 @@
 		"inputs": [
 			{
 				"indexed": false,
+				"name": "reviewer",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "contractor",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "rate",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"name": "date",
+				"type": "uint256"
+			}
+		],
+		"name": "ReviewEvt",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
 				"name": "commissions",
 				"type": "uint8[5]"
 			},

@@ -171,6 +171,24 @@ contract('KDOTicket', (accounts) => {
     assert.strictEqual(ticketType, 'bronze');
   });
 
+  it('ticket events: should fire Review when ticket reviews a contractor', async () => {
+    const ticket = accounts[1];
+    const contractor = accounts[2];
+    await HST.allocateNewTicket(ticket, tickets.silver.amount, { from: contractOwner, value: tickets.silver.value });
+
+    await HST.creditContractor(contractor, { from: ticket });
+
+    const rate = 1;
+
+    const res = await HST.publishReview(1, { from: ticket });
+
+    const reviewLog = res.logs.find(element => element.event.match('ReviewEvt'));
+
+    assert.strictEqual(reviewLog.args.reviewer, ticket);
+    assert.strictEqual(reviewLog.args.contractor, contractor);
+    assert.strictEqual(reviewLog.args.rate.toNumber(), rate);
+  });
+
   it('ticket events: should fire Consume when a ticket has been consumed', async () => {
     const ticket = accounts[1];
     const ticketKey = 'silver';
